@@ -17,6 +17,92 @@ export function toStr(v: unknown): string | null {
   return s.length ? s : null;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Best-effort "when was this listing posted?" as an epoch (ms), or null if we
+ * genuinely can't tell. Handles epoch numbers, ISO dates, and the relative
+ * phrases portals love ("Posted today", "2 hours ago", "yesterday",
+ * "3 days ago", "1 week ago"). Used only to filter to recent listings.
+ */
+export function parsePostedAt(raw: Record<string, unknown>): number | null {
+  const candidates = [
+    raw.postedDate,
+    raw.posted_at,
+    raw.postedOn,
+    raw.postedTime,
+    raw.postingDate,
+    raw.datePosted,
+    raw.createdAt,
+    raw.created_at,
+    raw.listingDate,
+    raw.updatedAt,
+    raw.updated_at,
+    raw.date,
+  ];
+
+  for (const c of candidates) {
+    const ts = parseWhen(c);
+    if (ts !== null) return ts;
+  }
+  return null;
+}
+
+function parseWhen(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+
+  if (typeof v === "number" && Number.isFinite(v)) {
+    if (v > 1e12) return v; // already ms
+    if (v > 1e9) return v * 1000; // seconds → ms
+    return null;
+  }
+
+  const s = toStr(v);
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  const now = Date.now();
+
+  // Relative phrases → treat sub-day units as "within the last day".
+  if (/(just now|moment|today|few hours|hour|hr|minute|min|sec)/.test(lower)) {
+    return now;
+  }
+  if (/yesterday/.test(lower)) return now - DAY_MS;
+
+  const rel = lower.match(/(\d+)\s*(day|week|month|year)/);
+  if (rel) {
+    const n = parseInt(rel[1], 10);
+    const unit = rel[2];
+    const mult =
+      unit === "day"
+        ? DAY_MS
+        : unit === "week"
+        ? 7 * DAY_MS
+        : unit === "month"
+        ? 30 * DAY_MS
+        : 365 * DAY_MS;
+    return now - n * mult;
+  }
+
+  // Absolute date string.
+  const parsed = Date.parse(s);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Does any of the given text mention one of the wanted sector numbers?
+ * Matches "Sector 56", "sector-56", "sec 56" with an exact number match so
+ * "56" doesn't match "561".
+ */
+export function textMatchesSectors(
+  text: string,
+  sectors: number[]
+): boolean {
+  const hay = text.toLowerCase();
+  return sectors.some((n) =>
+    new RegExp(`sec(tor)?[\\s.-]*0*${n}\\b`).test(hay)
+  );
+}
+
 /** Parse an Indian price string like "₹ 25,000/month" or "1.2 Cr" into a number of rupees. */
 export function parsePrice(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
