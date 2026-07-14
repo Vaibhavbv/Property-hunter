@@ -1,0 +1,51 @@
+name: Daily property scrape
+
+# Runs the daily ingestion by calling the deployed /api/cron/scrape endpoint.
+# Replaces the Vercel cron. You can also trigger it manually from the
+# GitHub → Actions tab ("Run workflow").
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SITE_URL     e.g. https://property-hunter-xyz.vercel.app  (no trailing slash)
+#   CRON_SECRET  the same value you set in Vercel's env vars
+
+on:
+  schedule:
+    # 06:00 UTC daily (~11:30 AM IST). Adjust if you like.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {} # manual "Run workflow" button
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scrape endpoint
+        run: |
+          set -euo pipefail
+          if [ -z "${SITE_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "::error::SITE_URL and CRON_SECRET repo secrets must be set."
+            exit 1
+          fi
+          # Normalize: strip trailing slash, default to https:// if the
+          # scheme was left off — both cause Vercel to 308-redirect the
+          # request, and a bare `curl` (no -L) treats that as a failure.
+          site_url="${SITE_URL%/}"
+          case "$site_url" in
+            http://*|https://*) ;;
+            *) site_url="https://${site_url}" ;;
+          esac
+          echo "Calling ${site_url}/api/cron/scrape ..."
+          response=$(curl -sS -L -w "\n%{http_code}" -X POST \
+            "${site_url}/api/cron/scrape" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            --max-time 300)
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -n1)
+          echo "HTTP $code"
+          echo "$body"
+          if [ "$code" != "200" ]; then
+            echo "::error::Scrape endpoint returned HTTP $code"
+            exit 1
+          fi
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
