@@ -71,10 +71,11 @@ export function createAdapter(config: SourceConfig) {
         // confirmed a given actor reliably reports the poster type.
         .filter((l) => l.posted_by !== "broker")
         .filter((l) => l.url) // drop rows we couldn't even link back to
-        // Location filter: keep only the wanted Gurgaon sectors. We search the
-        // listing's locality/title/description/city for the sector number.
+        // Location filter: keep only the wanted Gurgaon sectors. Skipped when
+        // the source's URLs already restrict localities (config.urlsPreFiltered),
+        // since the URL is authoritative and a text match could drop valid rows.
         .filter((l) =>
-          TARGET_SECTORS.length === 0
+          config.urlsPreFiltered || TARGET_SECTORS.length === 0
             ? true
             : textMatchesSectors(
                 [l.locality, l.title, l.description, l.city]
