@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hs-4001",
+    "url": "https://housing.com/property/hs-4001",
+    "title": "1 BHK for Rent in BTM Layout",
+    "description": "Compact 1 BHK, owner posted.",
+    "transactionType": "rent",
+    "propertyType": "Apartment",
+    "price": "18000",
+    "bhk": "1 BHK",
+    "area": "600",
+    "city": "Bangalore",
+    "locality": "BTM Layout",
+    "postedBy": "Owner",
+    "ownerName": "Meena T",
+    "phone": "+91-98xxxxxx31",
+    "images": ["https://img.housing.com/hs-4001/1.jpg"],
+    "amenities": ["Lift"]
+  },
+  {
+    "id": "hs-4002",
+    "url": "https://housing.com/property/hs-4002",
+    "title": "3 BHK Apartment for Sale in Viman Nagar",
+    "description": "Spacious, direct from owner.",
+    "transactionType": "sale",
+    "propertyType": "Apartment",
+    "price": "1.05 Cr",
+    "bhk": "3 BHK",
+    "area": "1550",
+    "city": "Pune",
+    "locality": "Viman Nagar",
+    "postedBy": "Owner",
+    "ownerName": "Rahul B",
+    "phone": "+91-99xxxxxx32",
+    "images": ["https://img.housing.com/hs-4002/1.jpg"],
+    "amenities": ["Gym", "Swimming Pool", "Car Parking"]
+  }
+]

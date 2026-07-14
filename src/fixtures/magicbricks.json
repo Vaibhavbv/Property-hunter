@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mb-3001",
+    "url": "https://www.magicbricks.com/property/mb-3001",
+    "title": "2 BHK Apartment for Rent in HSR Layout",
+    "description": "Owner listed, immediate possession.",
+    "transactionType": "rent",
+    "propertyType": "Apartment",
+    "price": "30000",
+    "bhk": "2 BHK",
+    "area": "1100",
+    "city": "Bangalore",
+    "locality": "HSR Layout",
+    "postedBy": "Owner",
+    "ownerName": "Kiran D",
+    "phone": "+91-98xxxxxx21",
+    "images": ["https://img.magicbricks.com/mb-3001/1.jpg"],
+    "amenities": ["Lift", "Power Backup"]
+  },
+  {
+    "id": "mb-3002",
+    "url": "https://www.magicbricks.com/property/mb-3002",
+    "title": "4 BHK Villa for Sale in Kharadi",
+    "description": "Luxury villa, direct owner.",
+    "transactionType": "sale",
+    "propertyType": "Villa",
+    "price": "2.1 Cr",
+    "bhk": "4 BHK",
+    "area": "2800",
+    "city": "Pune",
+    "locality": "Kharadi",
+    "postedBy": "Owner",
+    "ownerName": "Deepak V",
+    "phone": "+91-99xxxxxx22",
+    "images": ["https://img.magicbricks.com/mb-3002/1.jpg"],
+    "amenities": ["Garden", "Home Theatre", "Car Parking"]
+  }
+]
