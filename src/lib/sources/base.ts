@@ -1,8 +1,14 @@
 import { runActorAndGetItems } from "@/lib/apify";
 import { loadFixture } from "@/lib/fixtures";
-import { normalizeCommon } from "@/lib/normalize";
+import {
+  normalizeCommon,
+  parsePostedAt,
+  textMatchesSectors,
+} from "@/lib/normalize";
 import {
   MAX_ITEMS_PER_SOURCE,
+  POSTED_WITHIN_HOURS,
+  TARGET_SECTORS,
   USE_FIXTURES,
   type SourceConfig,
 } from "@/config/sources";
@@ -53,6 +59,8 @@ export function createAdapter(config: SourceConfig) {
         apifyRunId = result.runId;
       }
 
+      const cutoff = Date.now() - POSTED_WITHIN_HOURS * 60 * 60 * 1000;
+
       const listings = rawItems
         .map((raw) => normalizeCommon(config.key, raw))
         // Owner filtering: we DROP listings explicitly labelled as broker/agent
@@ -62,7 +70,26 @@ export function createAdapter(config: SourceConfig) {
         // owner-only by nature anyway. Tighten to `=== "owner"` here once we've
         // confirmed a given actor reliably reports the poster type.
         .filter((l) => l.posted_by !== "broker")
-        .filter((l) => l.url); // drop rows we couldn't even link back to
+        .filter((l) => l.url) // drop rows we couldn't even link back to
+        // Location filter: keep only the wanted Gurgaon sectors. We search the
+        // listing's locality/title/description/city for the sector number.
+        .filter((l) =>
+          TARGET_SECTORS.length === 0
+            ? true
+            : textMatchesSectors(
+                [l.locality, l.title, l.description, l.city]
+                  .filter(Boolean)
+                  .join(" "),
+                TARGET_SECTORS
+              )
+        )
+        // Recency filter: drop listings we can tell were posted before the
+        // cutoff. Listings with no determinable posted date are kept (the
+        // "New today" dashboard view still bounds them by first-seen).
+        .filter((l) => {
+          const ts = parsePostedAt(l.raw as Record<string, unknown>);
+          return ts === null || ts >= cutoff;
+        });
 
       return { listings, apifyRunId };
     },

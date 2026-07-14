@@ -22,8 +22,21 @@ import type { SourceKey } from "@/lib/types";
  */
 
 // Global cap per source per run. Overridable via env for quick tuning.
+// We scrape up to this many *newest* listings, then keep only the ones matching
+// TARGET_SECTORS + posted within POSTED_WITHIN_HOURS — so the number that
+// actually lands on the site is much smaller (curated, not the whole city).
 export const MAX_ITEMS_PER_SOURCE = Number(
-  process.env.MAX_ITEMS_PER_SOURCE ?? 25
+  process.env.MAX_ITEMS_PER_SOURCE ?? 50
+);
+
+// Only keep listings mentioning one of these Gurgaon sectors.
+export const TARGET_SECTORS = [42, 43, 54, 55, 56, 57, 58, 59, 61];
+
+// Only keep listings posted within this many hours (recency filter). Listings
+// whose posted date we can't determine are kept (the dashboard's "New today"
+// view, based on when we first saw them, still bounds recency).
+export const POSTED_WITHIN_HOURS = Number(
+  process.env.POSTED_WITHIN_HOURS ?? 24
 );
 
 // When "1", the pipeline reads bundled fixtures instead of calling Apify.
@@ -87,15 +100,15 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
     inputField: "startUrls",
     urlAsObject: true,
     ownerOnly: false,
-    // This actor is a browser (Puppeteer) crawler — each search URL adds real
-    // crawl time and cost. Start with ONE URL to get a fast, cheap, successful
-    // run; add the commented URLs back once you've confirmed spend per run is
-    // acceptable in the Apify console.
+    // Gurgaon, sorted newest-first (sort=DP = "date posted"). We scrape the
+    // newest listings across Gurgaon, then keep only TARGET_SECTORS posted in
+    // the last POSTED_WITHIN_HOURS (filtering happens in src/lib/sources/base.ts).
+    // If too few of the wanted sectors show up, replace these with
+    // sector-specific 99acres URLs (open the portal, filter to the sector +
+    // "Owner" + sort Newest, and copy the browser URL here).
     searchUrls: [
-      "https://www.99acres.com/rent-property-in-bangalore-ffid",
-      // "https://www.99acres.com/property-for-sale-in-bangalore-ffid",
-      // "https://www.99acres.com/rent-property-in-pune-ffid",
-      // "https://www.99acres.com/property-for-sale-in-pune-ffid",
+      "https://www.99acres.com/rent-property-in-gurgaon-ffid?sort=DP",
+      "https://www.99acres.com/property-for-sale-in-gurgaon-ffid?sort=DP",
     ],
   },
   magicbricks: {
