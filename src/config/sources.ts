@@ -87,11 +87,15 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
     inputField: "startUrls",
     urlAsObject: true,
     ownerOnly: false,
+    // This actor is a browser (Puppeteer) crawler — each search URL adds real
+    // crawl time and cost. Start with ONE URL to get a fast, cheap, successful
+    // run; add the commented URLs back once you've confirmed spend per run is
+    // acceptable in the Apify console.
     searchUrls: [
       "https://www.99acres.com/rent-property-in-bangalore-ffid",
-      "https://www.99acres.com/property-for-sale-in-bangalore-ffid",
-      "https://www.99acres.com/rent-property-in-pune-ffid",
-      "https://www.99acres.com/property-for-sale-in-pune-ffid",
+      // "https://www.99acres.com/property-for-sale-in-bangalore-ffid",
+      // "https://www.99acres.com/rent-property-in-pune-ffid",
+      // "https://www.99acres.com/property-for-sale-in-pune-ffid",
     ],
   },
   magicbricks: {
