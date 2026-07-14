@@ -58,6 +58,13 @@ export interface SourceConfig {
   urlAsObject: boolean;
   /** Portal is owner-only by nature (NoBroker) vs needs owner classification. */
   ownerOnly: boolean;
+  /**
+   * True when the searchUrls already restrict results to the wanted localities
+   * (e.g. 99acres URLs with locality= codes). When true we skip the code-side
+   * TARGET_SECTORS text filter, since the URL is authoritative and a text match
+   * could wrongly drop valid listings.
+   */
+  urlsPreFiltered?: boolean;
   /** Portal search-result URLs to scrape (city + rent/sale baked in). */
   searchUrls: string[];
   /** Extra static input passed to the actor (merged over the URLs + maxItems). */
@@ -97,18 +104,20 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
     label: "99acres",
     enabled: true,
     actorId: "easyapi/99acres-com-scraper",
-    inputField: "startUrls",
+    // This actor's URL list field is "Search URLs" → JSON key `searchUrls`
+    // (NOT `startUrls`). Sending the wrong key made it crawl nothing.
+    inputField: "searchUrls",
     urlAsObject: true,
     ownerOnly: false,
-    // Gurgaon, sorted newest-first (sort=DP = "date posted"). We scrape the
-    // newest listings across Gurgaon, then keep only TARGET_SECTORS posted in
-    // the last POSTED_WITHIN_HOURS (filtering happens in src/lib/sources/base.ts).
-    // If too few of the wanted sectors show up, replace these with
-    // sector-specific 99acres URLs (open the portal, filter to the sector +
-    // "Owner" + sort Newest, and copy the browser URL here).
+    // These are real Gurgaon /search/ URLs (city=8) pre-filtered to the wanted
+    // sectors via locality= codes — so location filtering happens at 99acres.
+    // To change sectors: rebuild the URL on 99acres (select sectors + Owner +
+    // Newest) and paste it here. Keep the recency filter (POSTED_WITHIN_HOURS)
+    // in code as the "last 24h" guarantee.
+    urlsPreFiltered: true,
     searchUrls: [
-      "https://www.99acres.com/rent-property-in-gurgaon-ffid?sort=DP",
-      "https://www.99acres.com/property-for-sale-in-gurgaon-ffid?sort=DP",
+      "https://www.99acres.com/search/property/buy/sector-54-gurgaon?city=8&locality=2463%2C2462%2C2461%2C2460%2C8186%2C6141%2C7780&preference=S&budget_min=0&res_com=R&isPreLeased=N",
+      "https://www.99acres.com/search/property/rent/sector-54-gurgaon?city=8&class=O&locality=2463%2C8186&preference=R&budget_min=0&res_com=R&isPreLeased=N",
     ],
   },
   magicbricks: {
