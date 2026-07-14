@@ -104,10 +104,12 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
     label: "99acres",
     enabled: true,
     actorId: "easyapi/99acres-com-scraper",
-    // This actor's URL list field is "Search URLs" → JSON key `searchUrls`
-    // (NOT `startUrls`). Sending the wrong key made it crawl nothing.
+    // Confirmed from a working run's input JSON: the actor reads `searchUrls`
+    // as an array of PLAIN STRING urls (not { url } objects), and expects an
+    // Apify proxy. Sending objects made it read nothing → 0 results.
     inputField: "searchUrls",
-    urlAsObject: true,
+    urlAsObject: false,
+    extraInput: { proxyConfiguration: { useApifyProxy: true } },
     ownerOnly: false,
     // These are real Gurgaon /search/ URLs (city=8) pre-filtered to the wanted
     // sectors via locality= codes — so location filtering happens at 99acres.
