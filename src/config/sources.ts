@@ -7,12 +7,19 @@ import type { SourceKey } from "@/lib/types";
  * COST NOTE ($5/month free tier ≈ $0.16/day):
  *  - Keep `enabled` sources few and `maxItems` small.
  *  - `maxItems` is the primary spend lever for pay-per-result actors.
- *  - Only the cities in TARGET_CITIES are scraped.
- *  - The cron runs once per day (see vercel.json).
+ *  - Fewer `searchUrls` = less credit.
+ *  - Scheduling is once/day via GitHub Actions (.github/workflows/daily-scrape.yml).
+ *
+ * DESIGN — URL-driven scraping:
+ *  We feed each actor the portal's own search-result URLs (which encode the
+ *  city + rent/sale). Owner-only filtering then happens in code via the
+ *  normalizer's owner/broker classification (see src/lib/normalize.ts), so it
+ *  keeps working even if a portal changes its filter query params.
+ *
+ *  To get a perfect URL: open the portal, apply City + "Owner" + sort by
+ *  "Newest", copy the browser URL, and paste it below. The defaults here are
+ *  best-effort starting points — expect to fine-tune them after the first run.
  */
-
-// Cities to scrape. Fewer cities = less credit spent.
-export const TARGET_CITIES = ["Bangalore", "Pune"];
 
 // Global cap per source per run. Overridable via env for quick tuning.
 export const MAX_ITEMS_PER_SOURCE = Number(
@@ -26,18 +33,22 @@ export interface SourceConfig {
   key: SourceKey;
   label: string;
   enabled: boolean;
-  /**
-   * Apify actor id in "username/actor-name" form. These are placeholders for
-   * well-known community actors — verify/replace with a free-to-use actor in
-   * the Apify Store before running against real data. The adapter is what
-   * shapes the input, so swapping the id here is usually all you need.
-   */
+  /** Apify actor id in "username/actor-name" form. */
   actorId: string;
   /**
-   * Whether this portal is owner-only by nature (NoBroker) or needs an
-   * owner filter applied in the adapter input (the rest).
+   * The actor input field that takes the list of URLs. Most Apify actors use
+   * "startUrls" (array of { url }). Some use "urls" or "queries" — check the
+   * actor's Input tab and change this one value if needed.
    */
+  inputField: string;
+  /** Whether the actor wants URLs as objects ({url}) or plain strings. */
+  urlAsObject: boolean;
+  /** Portal is owner-only by nature (NoBroker) vs needs owner classification. */
   ownerOnly: boolean;
+  /** Portal search-result URLs to scrape (city + rent/sale baked in). */
+  searchUrls: string[];
+  /** Extra static input passed to the actor (merged over the URLs + maxItems). */
+  extraInput?: Record<string, unknown>;
 }
 
 export const SOURCES: Record<SourceKey, SourceConfig> = {
@@ -45,29 +56,61 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
     key: "nobroker",
     label: "NoBroker",
     enabled: true,
-    actorId: "apify/nobroker-scraper",
-    ownerOnly: true,
+    actorId: "ecomscrape/nobroker-property-search-scraper",
+    inputField: "startUrls",
+    urlAsObject: true,
+    ownerOnly: true, // NoBroker is owner-only by design
+    searchUrls: [
+      "https://www.nobroker.in/property/rent/bangalore/multiple",
+      "https://www.nobroker.in/property/sale/bangalore/multiple",
+      "https://www.nobroker.in/property/rent/pune/multiple",
+      "https://www.nobroker.in/property/sale/pune/multiple",
+    ],
   },
   "99acres": {
     key: "99acres",
     label: "99acres",
     enabled: true,
-    actorId: "apify/99acres-scraper",
+    actorId: "easyapi/99acres-com-scraper",
+    inputField: "startUrls",
+    urlAsObject: true,
     ownerOnly: false,
+    searchUrls: [
+      "https://www.99acres.com/rent-property-in-bangalore-ffid",
+      "https://www.99acres.com/property-for-sale-in-bangalore-ffid",
+      "https://www.99acres.com/rent-property-in-pune-ffid",
+      "https://www.99acres.com/property-for-sale-in-pune-ffid",
+    ],
   },
   magicbricks: {
     key: "magicbricks",
     label: "MagicBricks",
     enabled: true,
-    actorId: "apify/magicbricks-scraper",
+    actorId: "ecomscrape/magicbricks-property-search-scraper",
+    inputField: "startUrls",
+    urlAsObject: true,
     ownerOnly: false,
+    searchUrls: [
+      "https://www.magicbricks.com/property-for-rent/residential-real-estate?cityName=Bangalore",
+      "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Bangalore",
+      "https://www.magicbricks.com/property-for-rent/residential-real-estate?cityName=Pune",
+      "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Pune",
+    ],
   },
   housing: {
     key: "housing",
     label: "Housing.com",
     enabled: true,
-    actorId: "apify/housing-scraper",
+    actorId: "ecomscrape/housing-property-search-scraper",
+    inputField: "startUrls",
+    urlAsObject: true,
     ownerOnly: false,
+    searchUrls: [
+      "https://housing.com/in/rent/flats-for-rent-in-bangalore",
+      "https://housing.com/in/buy/flats-for-sale-in-bangalore",
+      "https://housing.com/in/rent/flats-for-rent-in-pune",
+      "https://housing.com/in/buy/flats-for-sale-in-pune",
+    ],
   },
 };
 

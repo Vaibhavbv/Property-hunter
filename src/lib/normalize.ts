@@ -130,10 +130,17 @@ export function normalizeCommon(
   overrides: Partial<NormalizedListing> = {}
 ): NormalizedListing {
   const url =
-    overrides.url ?? toStr(raw.url) ?? toStr(raw.link) ?? toStr(raw.detailUrl);
+    overrides.url ??
+    toStr(raw.url) ??
+    toStr(raw.link) ??
+    toStr(raw.detailUrl) ??
+    toStr(raw.propertyUrl) ??
+    toStr(raw.pageUrl);
   const txn =
     overrides.transaction_type ??
-    parseTransaction(raw.transactionType ?? raw.type ?? raw.category);
+    parseTransaction(raw.transactionType ?? raw.type ?? raw.category) ??
+    // Fall back to inferring rent/sale from the listing URL itself.
+    parseTransaction(url);
 
   return {
     source,
@@ -147,22 +154,35 @@ export function normalizeCommon(
     property_type:
       overrides.property_type ??
       toStr(raw.propertyType ?? raw.subType ?? raw.category),
-    price: overrides.price ?? parsePrice(raw.price ?? raw.amount ?? raw.rent),
+    price:
+      overrides.price ??
+      parsePrice(raw.price ?? raw.amount ?? raw.rent ?? raw.priceValue),
     price_period: overrides.price_period ?? pricePeriodFor(txn),
-    bhk: overrides.bhk ?? parseBhk(raw.bhk ?? raw.title ?? raw.configuration),
+    bhk:
+      overrides.bhk ??
+      parseBhk(raw.bhk ?? raw.title ?? raw.configuration ?? raw.bedrooms),
     area_sqft:
-      overrides.area_sqft ?? parseNumber(raw.area ?? raw.carpetArea ?? raw.size),
-    city: overrides.city ?? toStr(raw.city ?? raw.location),
-    locality: overrides.locality ?? toStr(raw.locality ?? raw.area_name),
+      overrides.area_sqft ??
+      parseNumber(raw.area ?? raw.carpetArea ?? raw.size ?? raw.sqft),
+    city: overrides.city ?? toStr(raw.city ?? raw.location ?? raw.address),
+    locality:
+      overrides.locality ?? toStr(raw.locality ?? raw.area_name ?? raw.subLocality),
     latitude: overrides.latitude ?? parseNumber(raw.latitude ?? raw.lat),
-    longitude: overrides.longitude ?? parseNumber(raw.longitude ?? raw.lng),
+    longitude: overrides.longitude ?? parseNumber(raw.longitude ?? raw.lng ?? raw.lon),
     posted_by: overrides.posted_by ?? classifyPostedBy(raw),
     owner_name:
-      overrides.owner_name ?? toStr(raw.ownerName ?? raw.contactName ?? raw.postedByName),
+      overrides.owner_name ??
+      toStr(
+        raw.ownerName ?? raw.contactName ?? raw.postedByName ?? raw.sellerName
+      ),
     owner_contact:
-      overrides.owner_contact ?? toStr(raw.phone ?? raw.contact ?? raw.mobile),
+      overrides.owner_contact ??
+      toStr(raw.phone ?? raw.contact ?? raw.mobile ?? raw.contactNumber),
     images:
-      overrides.images ?? toStringArray(raw.images ?? raw.photos ?? raw.imageUrls),
+      overrides.images ??
+      toStringArray(
+        raw.images ?? raw.photos ?? raw.imageUrls ?? raw.gallery ?? raw.imageUrl
+      ),
     amenities: overrides.amenities ?? toStringArray(raw.amenities ?? raw.features),
     raw,
   };
