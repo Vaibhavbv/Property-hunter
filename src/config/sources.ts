@@ -51,11 +51,23 @@ export interface SourceConfig {
   extraInput?: Record<string, unknown>;
 }
 
+/**
+ * ACTOR STATUS (as of the first real run):
+ *  - 99acres (easyapi/99acres-com-scraper): confirmed working, pay-per-result.
+ *  - nobroker / magicbricks / housing (ecomscrape/*): these turned out to be
+ *    RENTAL actors whose free trial has expired ("You must rent a paid Actor
+ *    in order to run it"). Renting 3 actors would blow the $5/month budget,
+ *    so they're disabled here rather than risk more failed/costly guesses.
+ *    Apify's store pages block automated fetching, so re-enabling these needs
+ *    a human to browse https://apify.com/store, search each portal name,
+ *    filter Pricing → "Pay per result", and swap in the actorId (+ inputField
+ *    if it differs from "startUrls") below. Then flip enabled back to true.
+ */
 export const SOURCES: Record<SourceKey, SourceConfig> = {
   nobroker: {
     key: "nobroker",
     label: "NoBroker",
-    enabled: true,
+    enabled: false, // rental actor, free trial expired — see note above
     actorId: "ecomscrape/nobroker-property-search-scraper",
     inputField: "startUrls",
     urlAsObject: true,
@@ -85,7 +97,7 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
   magicbricks: {
     key: "magicbricks",
     label: "MagicBricks",
-    enabled: true,
+    enabled: false, // rental actor, free trial expired — see note above
     actorId: "ecomscrape/magicbricks-property-search-scraper",
     inputField: "startUrls",
     urlAsObject: true,
@@ -100,7 +112,7 @@ export const SOURCES: Record<SourceKey, SourceConfig> = {
   housing: {
     key: "housing",
     label: "Housing.com",
-    enabled: true,
+    enabled: false, // rental actor, free trial expired — see note above
     actorId: "ecomscrape/housing-property-search-scraper",
     inputField: "startUrls",
     urlAsObject: true,

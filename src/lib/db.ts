@@ -21,7 +21,17 @@ export async function upsertListings(
 ): Promise<UpsertResult> {
   if (listings.length === 0) return { found: 0, inserted: 0 };
 
-  const ids = listings.map((l) => l.source_listing_id);
+  // A single upsert() call cannot affect the same (source, source_listing_id)
+  // row twice — Postgres errors with "ON CONFLICT DO UPDATE command cannot
+  // affect row a second time" if the batch has internal duplicates. This can
+  // happen when an actor's output has genuine duplicates, or when our id
+  // fallback (see deriveListingId) collides for listings missing a clean id.
+  // Keep the last occurrence of each id.
+  const bySourceListingId = new Map<string, NormalizedListing>();
+  for (const l of listings) bySourceListingId.set(l.source_listing_id, l);
+  const deduped = Array.from(bySourceListingId.values());
+
+  const ids = deduped.map((l) => l.source_listing_id);
 
   const { data: existing } = await db
     .from("properties")
@@ -34,7 +44,7 @@ export async function upsertListings(
   );
 
   const now = new Date().toISOString();
-  const rows = listings.map((l) => ({
+  const rows = deduped.map((l) => ({
     ...l,
     images: l.images,
     amenities: l.amenities,
