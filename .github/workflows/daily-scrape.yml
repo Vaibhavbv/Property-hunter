@@ -25,9 +25,17 @@ jobs:
             echo "::error::SITE_URL and CRON_SECRET repo secrets must be set."
             exit 1
           fi
-          echo "Calling ${SITE_URL}/api/cron/scrape ..."
-          response=$(curl -sS -w "\n%{http_code}" -X POST \
-            "${SITE_URL}/api/cron/scrape" \
+          # Normalize: strip trailing slash, default to https:// if the
+          # scheme was left off — both cause Vercel to 308-redirect the
+          # request, and a bare `curl` (no -L) treats that as a failure.
+          site_url="${SITE_URL%/}"
+          case "$site_url" in
+            http://*|https://*) ;;
+            *) site_url="https://${site_url}" ;;
+          esac
+          echo "Calling ${site_url}/api/cron/scrape ..."
+          response=$(curl -sS -L -w "\n%{http_code}" -X POST \
+            "${site_url}/api/cron/scrape" \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             --max-time 300)
           body=$(echo "$response" | sed '$d')
